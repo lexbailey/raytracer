@@ -5,11 +5,13 @@ from PIL import Image
 from itertools import product
 
 def cross_prod(a, b):
-    return [
+    a = a.tolist()
+    b = b.tolist()
+    return np.array([
         (a[1] * b[2]) - (b[1] * a[2]),
         (a[2] * b[0]) - (b[2] * a[0]),
         (a[0] * b[1]) - (b[0] * a[1])
-    ]
+    ])
 
 def ray_triangle_intersect(p, d, v0, v1, v2):
     """
@@ -21,28 +23,41 @@ def ray_triangle_intersect(p, d, v0, v1, v2):
     e2 = v2 - v0
     h = cross_prod(d, e2)
     a = np.dot(e1, h)
-
     if a > -0.00001 and a < 0.00001:
         return None
-
     f = 1/a;
     s = p - v0
     u = f * (np.dot(s, h))
-
     if u < 0.0 or u > 1.0:
         return None
-
     q = cross_prod(s, e1)
     v = f * np.dot(d, q)
-
     if v < 0.0 or u + v > 1.0:
         return None
-
     t = f * np.dot(e2, q)
-
     if t > 0.00001:
         return (t, u, v);
     return None
+
+class ShaderModel():
+    def __init__(self):
+        pass
+
+    def get_colour(self, point, normal, lights, viewer):
+        return (0,0,0)
+
+class AmbientShader():
+    def __init__(self, colour):
+        self.colour = colour
+
+    def get_colour(self, point, normal, lights, viewer):
+        # Ambient shader model returns a constant colour
+        return self.colour
+
+class Light():
+    def __init__(self, position, colour):
+        self.position = position
+        self.colour = colour
 
 class RenderObject():
     def __init__(self):
@@ -51,7 +66,11 @@ class RenderObject():
     def set_colour(self, colour):
         self.colour = colour
 
-    def ray_hit(self):
+    def colour_at_point(self, point):
+        # TODO apply shader model
+        return self.colour
+
+    def ray_hit(self, p, d):
         return None
 
 class Mesh(RenderObject):
@@ -98,14 +117,19 @@ class RayTracer:
         self.vp_copup = np.array([0,1,0])
         self.vp_normal = np.array([0,0,1])
         self.objects = []
+        self.lights = []
         self._init_viewport()
 
     def add_object(self, obj):
         self.objects.append(obj)
 
+    def add_light(self, light):
+        self.lights.append(light)
+
     def _trace_ray(self, x, y):
         ray_start = np.array([(x-100)/2, -((y-75)/1.5), 0]) # TODO make this actually not hard coded
-        ray_dir = ray_start - self.vp_normal
+        #ray_dir = ray_start - self.vp_normal
+        ray_dir = -self.vp_normal
         s = np.array([0,0,0])
         near_obj, near_t = None, None
         for obj in self.objects:
@@ -116,7 +140,8 @@ class RayTracer:
             if near_t is None or t < near_t:
                 near_obj, near_t = obj, t
         if near_obj is not None:
-            s += near_obj.colour
+            point = ray_start + (ray_dir * t)
+            s += near_obj.colour_at_point(point)
             #print(s)
             # TODO recurse
         return s
@@ -133,11 +158,11 @@ class RayTracer:
 
 def main():
     rt = RayTracer((200,150))
-    a = np.array([-100,-100,-2])
-    b = np.array([100,-100,-2])
-    c = np.array([0,100,-2])
-    diff1 = np.array([100, 0, -1])
-    diff2 = np.array([-100, 0, 1])
+    a = np.array([-10,-10,-2])
+    b = np.array([10,-10,-2])
+    c = np.array([0,10,-2])
+    diff1 = np.array([10, 0, -1])
+    diff2 = np.array([-10, 0, 1])
     t1 = Triangle(a, b, c)
     t2 = Triangle(a+diff1, b+diff1, c+diff1)
     t2.set_colour((255, 0, 0))

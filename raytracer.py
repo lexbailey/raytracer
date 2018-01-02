@@ -1,8 +1,18 @@
 #!/usr/bin/env python
 
+from enum import Enum
 import numpy as np
 from PIL import Image
 from itertools import product
+
+np.seterr(all="raise")
+
+def normalize(v):
+    n = np.linalg.norm(v)
+    try:
+        return v/n
+    except FloatingPointError:
+        return v
 
 def cross_prod(a, b):
     a = a.tolist()
@@ -103,21 +113,27 @@ class Triangle(Mesh):
         mesh.__init__()
         mesh.add_triangle(a, b, c)
 
+class Projection(Enum):
+    Perspective = 0
+    Parallel = 1
+
 class RayTracer:
 
     def _init_viewport(self):
         self.viewport = Image.new("RGB", (self.px_size))
         self.viewport_canvas = self.viewport.load()
 
-    def __init__(self, px_size):
+    def __init__(self, px_size, projection):
         self.px_size = px_size
         assert len(self.px_size) == 2
         self.size = (100,100)
         self.vp_cop = np.array([0,0,0])
         self.vp_copup = np.array([0,1,0])
         self.vp_normal = np.array([0,0,1])
+        self.vp_prp = np.array([0,0,3])
         self.objects = []
         self.lights = []
+        self.projection = projection
         self._init_viewport()
 
     def add_object(self, obj):
@@ -129,7 +145,12 @@ class RayTracer:
     def _trace_ray(self, x, y):
         ray_start = np.array([(x-100)/2, -((y-75)/1.5), 0]) # TODO make this actually not hard coded
         #ray_dir = ray_start - self.vp_normal
-        ray_dir = -self.vp_normal
+        if self.projection == Projection.Parallel:
+            ray_dir = -self.vp_normal
+        elif self.projection == Projection.Perspective:
+            ray_dir = normalize(ray_start - self.vp_prp)
+        else:
+            raise Exception("Invalid projection type")
         s = np.array([0,0,0])
         near_obj, near_t = None, None
         for obj in self.objects:
@@ -157,7 +178,8 @@ class RayTracer:
         self.viewport.save(filename)
 
 def main():
-    rt = RayTracer((200,150))
+    rt = RayTracer((200,150), Projection.Perspective)
+    #rt = RayTracer((200,150), Projection.Parallel)
     a = np.array([-10,-10,-2])
     b = np.array([10,-10,-2])
     c = np.array([0,10,-2])

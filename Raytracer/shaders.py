@@ -3,7 +3,7 @@
 """
 
 import numpy as np
-from Raytracer.rayutils import normalize
+from Raytracer.rayutils import normalize, reflect
 
 class ShaderModel():
     """
@@ -54,8 +54,8 @@ class SpecularShader(ShaderModel):
         output = np.array([0,0,0]).astype(np.dtype("float64"))
         for light in lights:
             light_dir = normalize(light.get_position() - point)
-            reflection_ray = (np.dot(light_dir, normal)*2*normal)-light_dir
-            output += pow(np.dot(reflection_ray, viewer), self.shininess) * np.array(light.get_colour())
+            reflection_ray = reflect(normal, light_dir)
+            output += np.clip(pow(np.dot(reflection_ray, viewer), self.shininess) * np.array(light.get_colour()), 0, None)
         return tuple(output)
 
 class Light():

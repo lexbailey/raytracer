@@ -11,6 +11,8 @@ class RenderObject():
     """
     def __init__(self):
         self.shaders = []
+        self.reflectiveness = 0
+        self.transparency = 0
 
     def add_shader(self, shader):
         self.shaders.append(shader)
@@ -30,6 +32,18 @@ class RenderObject():
         """
         return None
 
+    def set_reflectiveness(self, reflectiveness):
+        self.reflectiveness = reflectiveness
+
+    def get_reflectiveness(self):
+        return self.reflectiveness
+
+    def set_transparency(self, transparency):
+        self.transparency = transparency
+
+    def get_transparency(self):
+        return self.transparency
+
 class Mesh(RenderObject):
     """
         A RenderObject that represents an arbitrary triangle mesh
@@ -38,12 +52,21 @@ class Mesh(RenderObject):
         super(Mesh, self).__init__()
         self.points = []
         self.tris = []
+        self.normals = []
 
-    def colour_at_point(self, point, pointid, lights, viewer):
-        outcol = np.array([0,0,0]).astype(np.dtype("float64"))
+    def normal_at_point(self, pointid):
+        normal = self.normals[pointid]
+        if normal is not None:
+            return normal
         triangle = self.tris[pointid]
         tripoints = [self.points[i] for i in triangle]
         normal = triangle_normal(*tripoints)
+        self.normals[pointid] = normal
+        return normal
+
+    def colour_at_point(self, point, pointid, lights, viewer):
+        outcol = np.array([0,0,0]).astype(np.dtype("float64"))
+        normal = self.normal_at_point(pointid)
         for shader in self.shaders:
             outcol += np.array(shader.get_colour(point, normal, lights, viewer))
         return outcol
@@ -56,6 +79,7 @@ class Mesh(RenderObject):
             self.points.append(point)
         n = len(self.points)
         self.tris.append([n-3, n-2, n-1])
+        self.normals.append(None)
 
     def ray_hit(self, p, d):
         near = None

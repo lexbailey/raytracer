@@ -15,8 +15,17 @@ c = np.array([0, 50, -2])
 diff1 = np.array([50, 0, -1])
 diff2 = np.array([-50, 0, 1])
 t1 = Triangle(a, b, c)
-t2 = Triangle(a+diff1, b+diff1, c+diff1)
+#t2 = Triangle(a+diff1, b+diff1, c+diff1)
+t2 = Triangle(
+    np.array([0, -50, -5]),
+    np.array([50, 50, -2]),
+    np.array([100, -50, 1])
+    )
 t3 = Triangle(a+diff2, b+diff2, c+diff2)
+
+t2.set_reflectiveness(0.7)
+t1.set_reflectiveness(0.7)
+t3.set_reflectiveness(0.7)
 
 amb_white = AmbientShader((100, 100, 100))
 amb_red = AmbientShader((100, 0, 0))
@@ -28,16 +37,17 @@ diff_blue = DiffuseShader((0, 0, 100))
 
 spec = SpecularShader((100, 100, 100), 1)
 
-t1.add_shader(amb_white)
-t2.add_shader(amb_red)
+t1.add_shader(amb_red)
+t2.add_shader(amb_white)
 t3.add_shader(amb_blue)
 
-t1.add_shader(diff_white)
-t2.add_shader(diff_red)
+t1.add_shader(diff_red)
+t2.add_shader(diff_white)
 t3.add_shader(diff_blue)
 
-#t3.add_shader(spec)
-#t2.add_shader(spec)
+t1.add_shader(spec)
+t2.add_shader(spec)
+t3.add_shader(spec)
 
 rt.add_object(t1)
 rt.add_object(t2)
@@ -46,5 +56,5 @@ rt.add_object(t3)
 light_pos = np.array([-20,0,5])
 light_pos2 = np.array([30,5,5])
 rt.add_light(Light(light_pos, (128, 128, 128)))
-rt.add_light(Light(light_pos2, (200, 0, 0)))
+#rt.add_light(Light(light_pos2, (200, 0, 0)))
 rt.render("test.png")

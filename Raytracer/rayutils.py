@@ -56,3 +56,6 @@ def triangle_normal(a, b, c):
     u = b - a
     v = c - a
     return normalize(cross_prod(u, v))
+
+def reflect(normal, incident):
+    return (np.dot(incident, normal) * 2 * normal) - incident

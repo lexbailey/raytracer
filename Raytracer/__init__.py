@@ -11,7 +11,7 @@ from itertools import product, chain
 from multiprocessing.pool import Pool, ApplyResult
 import numpy as np
 from PIL import Image
-from Raytracer.rayutils import normalize
+from Raytracer.rayutils import normalize, reflect
 from Raytracer.renderobjects import Triangle
 
 np.seterr(all="raise")
@@ -36,7 +36,7 @@ class RayTracer:
     def __init__(self, px_size, projection):
         self.px_size = px_size
         assert len(self.px_size) == 2
-        self.size = (100, 100)
+        self.size = (150, 100)
         self.vp_cop = np.array([0, 0, 0])
         self.vp_copup = np.array([0, 1, 0])
         self.vp_normal = np.array([0, 0, 1])
@@ -52,7 +52,46 @@ class RayTracer:
     def add_light(self, light):
         self.lights.append(light)
 
-    def _trace_ray(self, pixel):
+    def visible_lights(self, point):
+        """ return a list of the lights that the given point can see """
+        visible = []
+        for light in self.lights:
+            ray_dir = light.get_position()-point
+            near_obj, near_t, pid = self.nearest_object_hit(point, ray_dir)
+            if near_obj is None:
+                visible.append(light)
+        return visible
+
+    def nearest_object_hit(self, ray_start, ray_dir):
+        near_obj, near_t, near_pid = None, None, None
+        for obj in self.objects:
+            intersect = obj.ray_hit(ray_start, ray_dir)
+            if intersect is None:
+                continue
+            (t, u, v), pid = intersect
+            if near_t is None or t < near_t:
+                near_obj, near_t, near_pid = obj, t, pid
+        return near_obj, near_t, near_pid
+
+    def _trace_ray(self, ray_start, ray_dir, bounces=0, limit=10):
+        s = np.array([0, 0, 0]).astype(np.dtype("float64"))
+        if bounces > limit:
+            return s.astype(int)
+        near_obj, near_t, pid = self.nearest_object_hit(ray_start, ray_dir)
+        if near_obj is not None:
+            point = ray_start + (ray_dir * near_t)
+            lights = self.visible_lights(point)
+            s += near_obj.colour_at_point(point, pid, lights, normalize(ray_start-point))
+            reflectiveness = near_obj.get_reflectiveness()
+            transmit = near_obj.get_transparency()
+            if reflectiveness > 0:
+                reflect_ray = reflect(near_obj.normal_at_point(pid), -ray_dir)
+                s += reflectiveness * self._trace_ray(point, reflect_ray, bounces=bounces+1)
+            if transmit > 0:
+                s += transmit * self._trace_ray(point, ray_dir, bounces=bounces+1)
+        return s.astype(int)
+
+    def _trace_ray_from_pixel(self, pixel):
         x, y = pixel
         #ray_start = np.array([(x-100)/2, -((y-75)/1.5), 0]) # TODO make this actually not hard coded
         ray_start = np.array([(x-300)/6, -((y-200)/4), 0]) # TODO make this actually not hard coded
@@ -62,20 +101,7 @@ class RayTracer:
             ray_dir = normalize(ray_start - self.vp_prp)
         else:
             raise Exception("Invalid projection type")
-        s = np.array([0, 0, 0]).astype(np.dtype("float64"))
-        near_obj, near_t = None, None
-        for obj in self.objects:
-            intersect = obj.ray_hit(ray_start, ray_dir)
-            if intersect is None:
-                continue
-            (t, u, v), pid = intersect
-            if near_t is None or t < near_t:
-                near_obj, near_t = obj, t
-        if near_obj is not None:
-            point = ray_start + (ray_dir * t)
-            s += near_obj.colour_at_point(point, pid, self.lights, ray_start-point)
-            # TODO recurse
-        return s.astype(int)
+        return self._trace_ray(ray_start, ray_dir)
 
     def iter_all_pixels(self):
         return product(range(self.px_size[0]), range(self.px_size[1]))
@@ -93,7 +119,7 @@ class RayTracer:
             yield all_pixels[start:end]
 
     def _render_region(self, region):
-        return [tuple(self._trace_ray(pixel)) for pixel in region]
+        return [tuple(self._trace_ray_from_pixel(pixel)) for pixel in region]
 
     def render(self, filename):
         renderpool = Pool()

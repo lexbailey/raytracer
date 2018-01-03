@@ -17,7 +17,7 @@ diff2 = np.array([-50, 0, 1])
 t1 = Triangle(a, b, c)
 #t2 = Triangle(a+diff1, b+diff1, c+diff1)
 t2 = Triangle(
-    np.array([0, -50, -5]),
+    np.array([20, -50, -5]),
     np.array([50, 50, -2]),
     np.array([100, -50, 1])
     )
@@ -26,6 +26,8 @@ t3 = Triangle(a+diff2, b+diff2, c+diff2)
 t2.set_reflectiveness(0.7)
 t1.set_reflectiveness(0.7)
 t3.set_reflectiveness(0.7)
+t1.set_transparency(0.776)
+t3.set_transparency(0.376)
 
 amb_white = AmbientShader((100, 100, 100))
 amb_red = AmbientShader((100, 0, 0))

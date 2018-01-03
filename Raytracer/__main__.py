@@ -5,7 +5,7 @@
 import numpy as np
 from Raytracer import RayTracer, Projection
 from Raytracer.renderobjects import Triangle
-from Raytracer.shaders import Light, AmbientShader, DiffuseShader
+from Raytracer.shaders import Light, AmbientShader, DiffuseShader, SpecularShader
 
 rt = RayTracer((600, 400), Projection.Perspective)
 #rt = RayTracer((200,150), Projection.Parallel)
@@ -26,6 +26,8 @@ diff_white = DiffuseShader((100, 100, 100))
 diff_red = DiffuseShader((100, 0, 0))
 diff_blue = DiffuseShader((0, 0, 100))
 
+spec = SpecularShader((100, 100, 100), 1)
+
 t1.add_shader(amb_white)
 t2.add_shader(amb_red)
 t3.add_shader(amb_blue)
@@ -34,10 +36,15 @@ t1.add_shader(diff_white)
 t2.add_shader(diff_red)
 t3.add_shader(diff_blue)
 
+#t3.add_shader(spec)
+#t2.add_shader(spec)
+
 rt.add_object(t1)
 rt.add_object(t2)
 rt.add_object(t3)
 
 light_pos = np.array([-20,0,5])
-rt.add_light(Light(light_pos, (228, 228, 228)))
+light_pos2 = np.array([30,5,5])
+rt.add_light(Light(light_pos, (128, 128, 128)))
+rt.add_light(Light(light_pos2, (200, 0, 0)))
 rt.render("test.png")

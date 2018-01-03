@@ -41,6 +41,23 @@ class DiffuseShader(ShaderModel):
             output += np.array(light.get_colour()) * np.dot(normal, light_dir)
         return tuple(output)
 
+class SpecularShader(ShaderModel):
+    """
+        Specular shading model
+    """
+
+    def __init__(self, colour, shininess):
+        super(SpecularShader, self).__init__(colour)
+        self.shininess = shininess
+
+    def get_colour(self, point, normal, lights, viewer):
+        output = np.array([0,0,0]).astype(np.dtype("float64"))
+        for light in lights:
+            light_dir = normalize(light.get_position() - point)
+            reflection_ray = (np.dot(light_dir, normal)*2*normal)-light_dir
+            output += pow(np.dot(reflection_ray, viewer), self.shininess) * np.array(light.get_colour())
+        return tuple(output)
+
 class Light():
     """
         Abstract base class for lights

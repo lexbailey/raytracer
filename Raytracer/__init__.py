@@ -13,37 +13,6 @@ from Raytracer.renderobjects import Triangle
 
 np.seterr(all="raise")
 
-class ShaderModel():
-    """
-        Abstract base class for shader models
-        subclasses should implement get_colour
-    """
-    def __init__(self):
-        pass
-
-    def get_colour(self, point, normal, lights, viewer):
-        return (0, 0, 0)
-
-class AmbientShader(ShaderModel):
-    """
-        An amibent shader model
-    """
-    def __init__(self, colour):
-        super(AmbientShader, self).__init__()
-        self.colour = colour
-
-    def get_colour(self, point, normal, lights, viewer):
-        # Ambient shader model returns a constant colour
-        return self.colour
-
-class Light():
-    """
-        Abstract base class for lights
-    """
-    def __init__(self, position, colour):
-        self.position = position
-        self.colour = colour
-
 class Projection(Enum):
     """ Types of projection supported by the raytracer """
     Perspective = 0
@@ -77,29 +46,29 @@ class RayTracer:
         self.lights.append(light)
 
     def _trace_ray(self, x, y):
-        ray_start = np.array([(x-100)/2, -((y-75)/1.5), 0]) # TODO make this actually not hard coded
-        #ray_dir = ray_start - self.vp_normal
+        #ray_start = np.array([(x-100)/2, -((y-75)/1.5), 0]) # TODO make this actually not hard coded
+        ray_start = np.array([(x-300)/6, -((y-200)/4), 0]) # TODO make this actually not hard coded
         if self.projection == Projection.Parallel:
             ray_dir = -self.vp_normal
         elif self.projection == Projection.Perspective:
             ray_dir = normalize(ray_start - self.vp_prp)
         else:
             raise Exception("Invalid projection type")
-        s = np.array([0, 0, 0])
+        s = np.array([0, 0, 0]).astype(np.dtype("float64"))
         near_obj, near_t = None, None
         for obj in self.objects:
             intersect = obj.ray_hit(ray_start, ray_dir)
             if intersect is None:
                 continue
-            t, u, v = intersect
+            (t, u, v), pid = intersect
             if near_t is None or t < near_t:
                 near_obj, near_t = obj, t
         if near_obj is not None:
             point = ray_start + (ray_dir * t)
-            s += near_obj.colour_at_point(point)
+            s += near_obj.colour_at_point(point, pid, self.lights, ray_start-point)
             #print(s)
             # TODO recurse
-        return s
+        return s.astype(int)
 
     def iter_all_pixels(self):
         return product(range(self.px_size[0]), range(self.px_size[1]))
@@ -109,4 +78,6 @@ class RayTracer:
             self.viewport_canvas[x, y] = tuple(self._trace_ray(x, y))
             #print(x, y, end = "")
             #print(".", end = "")
-        self.viewport.save(filename)
+        scale = 1
+        out = self.viewport.resize((self.px_size[0] * scale, self.px_size[1] * scale), resample=Image.NEAREST)
+        out.save(filename)

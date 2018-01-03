@@ -3,26 +3,23 @@
 """
 
 import numpy as np
-from Raytracer.rayutils import ray_triangle_intersect
+from Raytracer.rayutils import ray_triangle_intersect, triangle_normal
 
 class RenderObject():
     """
         Abstract base class for objects that can be rendered
     """
     def __init__(self):
-        self.colour = (255, 255, 255)
+        self.shaders = []
 
-    def set_colour(self, colour):
-        """ Set the colour of the object """
-        # TODO get rid of this in favour of shaders
-        self.colour = colour
+    def add_shader(self, shader):
+        self.shaders.append(shader)
 
     def colour_at_point(self, point):
         """
             Get the colour of this object at the specified point
         """
-        # TODO apply shader model
-        return self.colour
+        return (0, 0, 0)
 
     def ray_hit(self, p, d):
         """
@@ -42,6 +39,15 @@ class Mesh(RenderObject):
         self.points = []
         self.tris = []
 
+    def colour_at_point(self, point, pointid, lights, viewer):
+        outcol = np.array([0,0,0]).astype(np.dtype("float64"))
+        triangle = self.tris[pointid]
+        tripoints = [self.points[i] for i in triangle]
+        normal = triangle_normal(*tripoints)
+        for shader in self.shaders:
+            outcol += np.array(shader.get_colour(point, normal, lights, viewer))
+        return outcol
+
     def add_triangle(self, a, b, c):
         """
             Add a triangle to the mesh
@@ -53,14 +59,18 @@ class Mesh(RenderObject):
 
     def ray_hit(self, p, d):
         near = None
-        for triangle in self.tris:
+        n_tid = None
+        for tid, triangle in enumerate(self.tris):
             tripoints = [self.points[i] for i in triangle]
             intersect = ray_triangle_intersect(p, d, tripoints[0], tripoints[1], tripoints[2])
             if intersect is not None:
                 t, u, v = intersect
                 if near is None or t < near[0]:
                     near = t, u, v
-        return near
+                    n_tid = tid
+        if near is None:
+            return None
+        return (near, n_tid)
 
 class Triangle(Mesh):
     """

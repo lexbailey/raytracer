@@ -51,3 +51,8 @@ def ray_triangle_intersect(p, d, v0, v1, v2):
     if t > 0.00001:
         return (t, u, v)
     return None
+
+def triangle_normal(a, b, c):
+    u = b - a
+    v = c - a
+    return normalize(cross_prod(u, v))

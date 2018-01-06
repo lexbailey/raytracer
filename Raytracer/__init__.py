@@ -119,7 +119,14 @@ class RayTracer:
             yield all_pixels[start:end]
 
     def _render_region(self, region, limit=10):
-        return [tuple(self._trace_ray_from_pixel(pixel, limit=limit)) for pixel in region]
+        max_px = len(region)
+        done_px = 0
+        output = []
+        for pixel in region:
+            output.append(tuple(self._trace_ray_from_pixel(pixel, limit=limit)))
+            done_px += 1
+            if done_px % 10 == 0:
+                print("%.1f%%" % (100*done_px/max_px))
 
     def render(self, filename, limit=10):
         renderpool = Pool()

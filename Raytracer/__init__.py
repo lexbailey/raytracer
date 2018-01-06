@@ -86,12 +86,12 @@ class RayTracer:
             transmit = near_obj.get_transparency()
             if reflectiveness > 0:
                 reflect_ray = reflect(near_obj.normal_at_point(pid), -ray_dir)
-                s += reflectiveness * self._trace_ray(point, reflect_ray, bounces=bounces+1)
+                s += reflectiveness * self._trace_ray(point, reflect_ray, bounces=bounces+1, limit=limit)
             if transmit > 0:
-                s += transmit * self._trace_ray(point, ray_dir, bounces=bounces+1)
+                s += transmit * self._trace_ray(point, ray_dir, bounces=bounces+1, limit=limit)
         return s.astype(int)
 
-    def _trace_ray_from_pixel(self, pixel):
+    def _trace_ray_from_pixel(self, pixel, limit=10):
         x, y = pixel
         #ray_start = np.array([(x-100)/2, -((y-75)/1.5), 0]) # TODO make this actually not hard coded
         ray_start = np.array([(x-300)/6, -((y-200)/4), 0]) # TODO make this actually not hard coded
@@ -101,7 +101,7 @@ class RayTracer:
             ray_dir = normalize(ray_start - self.vp_prp)
         else:
             raise Exception("Invalid projection type")
-        return self._trace_ray(ray_start, ray_dir)
+        return self._trace_ray(ray_start, ray_dir, limit=limit)
 
     def iter_all_pixels(self):
         return product(range(self.px_size[0]), range(self.px_size[1]))
@@ -118,12 +118,12 @@ class RayTracer:
                 end = None
             yield all_pixels[start:end]
 
-    def _render_region(self, region):
-        return [tuple(self._trace_ray_from_pixel(pixel)) for pixel in region]
+    def _render_region(self, region, limit=10):
+        return [tuple(self._trace_ray_from_pixel(pixel, limit=limit)) for pixel in region]
 
-    def render(self, filename):
+    def render(self, filename, limit=10):
         renderpool = Pool()
-        regions = [renderpool.apply_async(call_bound_method, args=(self, "_render_region", (region,))) for region in self.iter_regions(cpu_count())]
+        regions = [renderpool.apply_async(call_bound_method, args=(self, "_render_region", (region,), {"limit": limit})) for region in self.iter_regions(cpu_count())]
         renderpool.close()
         map(ApplyResult.wait, regions)
         pixels = list(chain(*[region.get() for region in regions]))

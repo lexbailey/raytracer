@@ -3,6 +3,7 @@
 """
 
 import numpy as np
+import trimesh
 from Raytracer.rayutils import ray_triangle_intersect, triangle_normal
 
 class RenderObject():
@@ -104,3 +105,10 @@ class Triangle(Mesh):
         mesh = super(Triangle, self)
         mesh.__init__()
         mesh.add_triangle(a, b, c)
+
+class ModelMesh(Mesh):
+    def __init__(self, filename):
+        super(ModelMesh, self).__init__()
+        loaded_mesh = trimesh.load(filename)
+        self.points = loaded_mesh.vertices
+        self.tris = loaded_mesh.faces

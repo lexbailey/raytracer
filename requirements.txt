@@ -2,3 +2,5 @@ numpy>=1.13.3
 pillow>=5.0.0
 pylint>=1.8.1
 coverage>=4.4.2
+trimesh>=2.22.11
+lxml>=4.1.1

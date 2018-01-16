@@ -6,19 +6,24 @@ import numpy as np
 import trimesh
 from Raytracer.rayutils import ray_triangle_intersect, triangle_normal
 
+
 class RenderObject():
     """
         Abstract base class for objects that can be rendered
     """
+
     def __init__(self):
         self.shaders = []
         self.reflectiveness = 0
         self.transparency = 0
 
     def add_shader(self, shader):
+        """
+            Add a ShaderModel instance to the object
+        """
         self.shaders.append(shader)
 
-    def colour_at_point(self, point):
+    def colour_at_point(self, point, pointid, lights, viewer):
         """
             Get the colour of this object at the specified point
         """
@@ -34,21 +39,27 @@ class RenderObject():
         return None
 
     def set_reflectiveness(self, reflectiveness):
+        """ Set the reflectiveness, use 0 to stop tracing reflection rays """
         self.reflectiveness = reflectiveness
 
     def get_reflectiveness(self):
+        """ Get the reflectiveness """
         return self.reflectiveness
 
     def set_transparency(self, transparency):
+        """ Set the transparency, use 0 to stop tracing transmission rays"""
         self.transparency = transparency
 
     def get_transparency(self):
+        """ Get the transparency """
         return self.transparency
+
 
 class Mesh(RenderObject):
     """
         A RenderObject that represents an arbitrary triangle mesh
     """
+
     def __init__(self):
         super(Mesh, self).__init__()
         self.points = []
@@ -56,6 +67,7 @@ class Mesh(RenderObject):
         self.normals = []
 
     def normal_at_point(self, pointid):
+        """ Get the normal for a point, given the point ID """
         normal = self.normals[pointid]
         if normal is not None:
             return normal
@@ -66,10 +78,15 @@ class Mesh(RenderObject):
         return normal
 
     def colour_at_point(self, point, pointid, lights, viewer):
-        outcol = np.array([0,0,0]).astype(np.dtype("float64"))
+        """
+            Get the colour at the given point with pointid according to the applied
+            shader models
+        """
+        outcol = np.array([0, 0, 0]).astype(np.dtype("float64"))
         normal = self.normal_at_point(pointid)
         for shader in self.shaders:
-            outcol += np.array(shader.get_colour(point, normal, lights, viewer))
+            outcol += np.array(shader.get_colour(point,
+                                                 normal, lights, viewer))
         return outcol
 
     def add_triangle(self, a, b, c):
@@ -79,15 +96,20 @@ class Mesh(RenderObject):
         for point in [a, b, c]:
             self.points.append(point)
         n = len(self.points)
-        self.tris.append([n-3, n-2, n-1])
+        self.tris.append([n - 3, n - 2, n - 1])
         self.normals.append(None)
 
     def ray_hit(self, p, d):
+        """
+            Test if a ray hits this object, return the point and point ID if this
+            ray does hit this object, otherwise return None
+        """
         near = None
         n_tid = None
         for tid, triangle in enumerate(self.tris):
             tripoints = [self.points[i] for i in triangle]
-            intersect = ray_triangle_intersect(p, d, tripoints[0], tripoints[1], tripoints[2])
+            intersect = ray_triangle_intersect(
+                p, d, tripoints[0], tripoints[1], tripoints[2])
             if intersect is not None:
                 t, u, v = intersect
                 if near is None or t < near[0]:
@@ -97,16 +119,23 @@ class Mesh(RenderObject):
             return None
         return (near, n_tid)
 
+
 class Triangle(Mesh):
     """
-        A RanderObject that represents a single triangle
+        A RenderObject that represents a single triangle
     """
+
     def __init__(self, a, b, c):
         mesh = super(Triangle, self)
         mesh.__init__()
         mesh.add_triangle(a, b, c)
 
+
 class ModelMesh(Mesh):
+    """
+        A RenderObject that loads a triangle mesh from a file
+    """
+
     def __init__(self, filename):
         super(ModelMesh, self).__init__()
         loaded_mesh = trimesh.load(filename)

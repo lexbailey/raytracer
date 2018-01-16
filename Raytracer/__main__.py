@@ -20,8 +20,8 @@ t2 = Triangle(
     np.array([20, -50, -5]),
     np.array([50, 50, -2]),
     np.array([100, -50, 1])
-    )
-t3 = Triangle(a+diff2, b+diff2, c+diff2)
+)
+t3 = Triangle(a + diff2, b + diff2, c + diff2)
 
 t2.set_reflectiveness(0.7)
 t1.set_reflectiveness(0.7)
@@ -51,17 +51,17 @@ t1.add_shader(spec)
 t2.add_shader(spec)
 t3.add_shader(spec)
 
-#rt.add_object(t1)
-#rt.add_object(t2)
-#rt.add_object(t3)
+# rt.add_object(t1)
+# rt.add_object(t2)
+# rt.add_object(t3)
 
 teapot = ModelMesh("teapot.stl")
 teapot.add_shader(SpecularShader((100, 100, 100), 1))
 teapot.add_shader(DiffuseShader((100, 100, 100)))
 rt.add_object(teapot)
 
-light_pos = np.array([-20,0,5])
-light_pos2 = np.array([30,5,5])
+light_pos = np.array([-20, 0, 5])
+light_pos2 = np.array([30, 5, 5])
 rt.add_light(Light(light_pos, (128, 128, 128)))
 #rt.add_light(Light(light_pos2, (200, 0, 0)))
 rt.render("test.png", limit=3)
